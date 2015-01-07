@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!--
+  /*
+OnlineOpinion v5.9.0
+Released: 11/17/2014. Compiled 11/17/2014 01:01:01 PM -0600
+Branch: master 7cffc7b9a0b11594d56b71ca0cb042d9b0fc24f5
+Components: Full
+UMD: disabled
+The following code is Copyright 1998-2014 Opinionlab, Inc. All rights reserved. Unauthorized use is prohibited. This product and other products of OpinionLab, Inc. are protected by U.S. Patent No. 6606581, 6421724, 6785717 B1 and other patents pending. http://www.opinionlab.com
+*/
+
+-->
+<title>When your visit is complete, your survey will load in this window.</title>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, minimal-ui" />
+<style type="text/css" media="screen">
+body {
+    margin: 0;
+    padding: 0;
+    font: 1em/1.5em 'HelveticaNeue-Medium', Helvetica, Arial, sans-serif;
+}
+#title {
+    background: black;
+}
+p {
+    margin: 0;
+    padding: 0 0 20px 0;
+    font: 1em/1.5em 'HelveticaNeue-Medium', Helvetica, Arial, sans-serif;
+}
+#title p {
+    margin: 0;
+    font-size: 1.5em;
+    line-height: 1.2em;
+    color: #fff;
+    padding: 20px 40px;
+    font-weight: 700;
+}
+a {
+    cursor: pointer;
+}
+a:focus {
+    outline:3px solid #51ace9;
+}
+#container {
+    border-top: 1px solid #ccc;
+    padding: 20px 40px;
+}
+.start-survey {
+    text-align: center;
+    color: white;
+    text-decoration: none;
+    font-size: 1.5em;
+    line-height: 1em;
+    padding: 12px 0 13px 0;
+    display: block;
+    height: 25px;
+    background: #cb352d;
+}
+#button {
+    padding: 0;
+}
+</style>
+</head>
+<body>
+    <div id="title">
+        <p>Thank you for helping us improve our website</p>
+    </div>
+    <div id="container">
+        <p id="m1">If your visit to our website is complete, please click on <strong>Start Survey</strong> below.</p>
+        <p id="m2">Otherwise, please leave this window and return once you are done.</p>
+        <p id="button"><a href="#" class="start-survey" onclick="load_card()" aria-describedby="title m1 m2">Start Survey</a></p>
+    </div>
+
+    <script>
+    window.onload = function () {
+        document.querySelector('.start-survey').focus();
+    };
+
+    // checking for focus event issues in IE8
+    var friendlyActive = false,
+        // have to see if the host site has friendly domains specified
+        friendlyDomains,
+        moveToX = (screen.width-400)/2,
+        moveToY=200,
+        referer = location.search.match(/referer=(.+?)&/),
+        oldReferer,
+        refererRewrite,
+        surveyPrompt = 'Please fill out the end of visit comment card.',
+        ua = navigator.userAgent,
+        firefox = ua.search('Firefox') != -1 ? ua.match(/Firefox\/(\d+)/)[1] : false,
+        safari = ua.search('Safari') !== -1,
+        loadCard;
+
+    // Listen for prompt message passed via configuration
+    eventListener(window, 'message', function(e) {
+        surveyPrompt = e.data;
+    }, false);
+
+    // Set referer and rewrite values
+    if (referer instanceof Array && referer.length > 1) {
+        referer = oldReferer = referer[1];
+    };
+
+    refererRewrite = { weight: 0, replacePattern: null, searchPattern: null };
+
+    // Opener may not be set or on the same origin
+    try {
+        if (window.opener) {
+            window.opener.oo_inv_monitor = this;
+            friendlyDomains = window.opener.OOo.Invitation.friendlyDomains;
+            eventListener(window.opener, 'unload', checkDomain, false);
+            if (friendlyDomains) {
+                eventListener(window.opener.document, 'click', monitorLinks, false);
+            }
+            if (window.opener.OOoDynamicRewrite) {
+                refererRewrite = window.opener.OOoDynamicRewrite;
+            }
+        }
+    } catch (e) {}
+
+    // Break link between monitor and parent on unload
+    eventListener(window, 'unload', function () {
+        try {
+            if (window.opener) {
+                window.opener.oo_inv_monitor = null;
+            }
+        } catch (e) {}
+    }, false);
+
+    if (!(ua.search('Windows') !== -1 && (ua.search('Safari') !== -1 || ua.search('Firefox') !== -1))) {
+        window.moveTo(moveToX, moveToY);
+    }
+
+    function checkDomain(e) {
+        window.setTimeout(function(){
+            try {
+                if (!window.opener || !window.opener.location.href || window.opener.innerHeight <= 0) {
+                    throw('Cross Domain');
+                }
+                if (window.opener && window.opener.OOoDynamicRewrite)  {
+                    refererRewrite = window.opener.OOoDynamicRewrite.weight > refererRewrite.weight ? opener.OOoDynamicRewrite : refererRewrite;
+                }
+                if (friendlyDomains) {
+                    eventListener(window.opener.document, 'click', monitorLinks, false);
+                }
+                eventListener(window.opener, 'unload', checkDomain, false);
+                if (window.opener) {
+                    window.opener.oo_inv_monitor = this;
+                }
+            } catch (err) {
+                load_card('unload');
+            }
+        }, 1500);
+    }
+
+    function load_card(evt) {
+        if (friendlyActive) return; // the user is going to a friendly domain
+        var queryString = location.search,
+            rw = refererRewrite;
+
+       /* This logic causes a global IE issue when the browser is closed. Need to find a better way.
+       if (rw && rw.replacePattern) {
+            referer = rw.searchPattern ? decodeURIComponent(referer).replace(RegExp(rw.searchPattern), rw.replacePattern) : rw.replacePattern;
+            queryString = location.search.replace(oldReferer, referer);
+        }
+        */
+
+        var popupURL = 'https://secure.opinionlab.com/ccc01/comment_card.asp?';
+
+        // confirm message is necessary to force focus in Chrome. Nothing will force focus in FF.
+        if (evt && evt === 'unload') {
+            focusMonitor();
+            loadCard = confirm(surveyPrompt);
+        } else {
+            loadCard = true; // user clicked "start survey"
+        }
+
+        if (loadCard) {
+            window.location.href = popupURL + queryString.slice(1);
+        }
+
+        return false;
+    }
+
+    function monitorLinks(e) {
+        var evt = e || window.event,
+            tar = e.target || e.srcElement,
+            i;
+
+        // first test if the element being clicked on is anything we are interested in
+        if (tar.nodeName != 'A' || tar.href.match(location.protocol + '//' + location.hostname) || tar.href.substr(0,4) != 'http') return;
+
+        // check if the clicked link is friendly or not
+        i = friendlyDomains.length;
+        while (i--) {
+            if (tar.href.search(friendlyDomains[i]) != -1) {
+                friendlyActive = true;
+                i = 0; //we have a friendly domain exit out of the loop
+            }
+        }
+
+        if (!friendlyActive) return;
+
+        if (e.preventDefault) e.preventDefault();
+
+        window.opener.OOo.Invitation.navigateToFriendlyDomain(tar.href.search(/\?/) == -1 ? tar.href + '?evs' : tar.href + 'evs');
+    }
+
+    function eventListener(target,type,callback,captures) {
+        if (target.addEventListener) {
+            target.addEventListener(type, callback, captures);
+        } else if (target.attachEvent) {
+            target.attachEvent('on'+type, callback, captures);
+        }
+    }
+
+    function focusMonitor () {
+        if (window.opener) {
+            window.opener.blur();
+        }
+        window.focus();
+    }
+    </script>
+
+</body>
+</html>

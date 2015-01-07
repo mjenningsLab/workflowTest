@@ -1,0 +1,13 @@
+{
+  "name": "workflow",
+  "version": "0.1.0",
+  "devDependencies": {
+    "grunt": "~0.4.1"
+    //hint
+    //watch
+    //unit tests?
+    //template to build master code file
+    //template to build code package
+  }
+}
+
